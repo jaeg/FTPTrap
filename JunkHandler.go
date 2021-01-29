@@ -5,12 +5,14 @@ import (
 	"io"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/pkg/sftp"
 )
 
 //JunkHandler handler struct for request server
 type JunkHandler struct {
+	commandDelay int64
 }
 
 //Fileread handler for read requests for the sftp server.
@@ -32,6 +34,7 @@ func (fs *JunkHandler) Filewrite(r *sftp.Request) (io.WriterAt, error) {
 //Filecmd handler for commands for the sftp server.
 func (fs *JunkHandler) Filecmd(r *sftp.Request) error {
 	fmt.Println(r.Method)
+	time.Sleep(time.Second * time.Duration(fs.commandDelay))
 
 	return nil
 }
@@ -53,6 +56,8 @@ func (f listerat) ListAt(ls []os.FileInfo, offset int64) (int, error) {
 
 //Filelist handler for list commands for the sftp server.
 func (fs *JunkHandler) Filelist(r *sftp.Request) (sftp.ListerAt, error) {
+	time.Sleep(time.Second * time.Duration(fs.commandDelay))
+
 	switch r.Method {
 	case "List":
 		files := make([]os.FileInfo, 0)
@@ -75,9 +80,9 @@ func (fs *JunkHandler) Filelist(r *sftp.Request) (sftp.ListerAt, error) {
 }
 
 // GetJunkHandler returns a Hanlders object with the test handlers.
-func GetJunkHandler(user string) (sftp.Handlers, error) {
+func GetJunkHandler(user string, commandDelay int64) (sftp.Handlers, error) {
 
-	fileWriter := &JunkHandler{}
+	fileWriter := &JunkHandler{commandDelay: commandDelay}
 
 	return sftp.Handlers{FileGet: fileWriter, FilePut: fileWriter, FileCmd: fileWriter, FileList: fileWriter}, nil
 }

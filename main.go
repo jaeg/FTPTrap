@@ -9,6 +9,7 @@ import (
 	"log"
 	"net"
 	"os"
+	"time"
 
 	"github.com/pkg/sftp"
 	"golang.org/x/crypto/ssh"
@@ -32,18 +33,23 @@ func loadConfig(path string) error {
 	return err
 }
 
+var (
+	noauth       bool
+	keyPath      string
+	configPath   string
+	port         string
+	loginDelay   int64
+	commandDelay int64
+)
+
 func main() {
-	var (
-		noauth     bool
-		keyPath    string
-		configPath string
-		port       string
-	)
 
 	flag.BoolVar(&noauth, "no-auth", false, "no authentication")
 	flag.StringVar(&keyPath, "key-path", "test.key", "Path to key.  Defaults to test.key")
 	flag.StringVar(&configPath, "config-path", "config.json", "Path to config file.")
 	flag.StringVar(&port, "port", "2022", "Port to run ftp on")
+	flag.Int64Var(&loginDelay, "login-delay", 0, "How long to delay login attempts in seconds")
+	flag.Int64Var(&commandDelay, "command-delay", 0, "How long to delay commands in seconds")
 
 	flag.Parse()
 
@@ -59,7 +65,9 @@ func main() {
 	} else {
 		config.PasswordCallback = func(c ssh.ConnMetadata, pass []byte) (*ssh.Permissions, error) {
 			fmt.Println("Login attempt from:" + c.RemoteAddr().String() + " " + c.RemoteAddr().Network())
-
+			if loginDelay > 0 {
+				time.Sleep(time.Second * time.Duration(loginDelay))
+			}
 			//Look up users from config
 			password, ok := junkConfig.Users[c.User()]
 			fmt.Println(c.User(), ":", password)
@@ -146,7 +154,7 @@ func HandleConnection(nConn net.Conn, config *ssh.ServerConfig) {
 		}(requests)
 
 		//Setup request server for the incoming connection
-		handlers, err := GetJunkHandler(sConn.User())
+		handlers, err := GetJunkHandler(sConn.User(), commandDelay)
 		if err != nil {
 			continue
 		}
