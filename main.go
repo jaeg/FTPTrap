@@ -14,6 +14,7 @@ import (
 	"log"
 	"net"
 	"os"
+	"sync"
 	"time"
 
 	"github.com/pkg/sftp"
@@ -29,6 +30,16 @@ type Config struct {
 }
 
 var junkConfig Config
+
+type activityEntry struct {
+	user      string
+	ip        string
+	action    string
+	timestamp time.Time
+}
+
+var activity []activityEntry
+var activityMu sync.Mutex
 
 func loadConfig(path string) error {
 	jsonFile, err := os.Open(path)
@@ -50,6 +61,7 @@ var (
 )
 
 func main() {
+	activity = make([]activityEntry, 0)
 
 	flag.BoolVar(&noauth, "no-auth", false, "no authentication")
 	flag.StringVar(&keyPath, "key-path", "", "Path to key if set, otherwise generate cert.")
@@ -136,6 +148,7 @@ func main() {
 	}
 	fmt.Printf("Listening on %v\n", listener.Addr())
 
+	go writeActivityToDisk()
 	for {
 		nConn, err := listener.Accept()
 		if err != nil {
@@ -143,6 +156,32 @@ func main() {
 		}
 
 		go HandleConnection(nConn, config)
+	}
+}
+
+// We don't want attackers to be able to abuse our disk IO by DOSing us with activity.
+// The idea is that this process will handle getting that activity logged on its own schedule.
+func writeActivityToDisk() {
+	for {
+		file, err := os.OpenFile("activity.log", os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0644)
+		if err == nil {
+			if len(activity) > 0 {
+				activityMu.Lock()
+				//Write activity to disk.
+				for _, ac := range activity {
+					file.WriteString(ac.timestamp.String() + " - IP:" + ac.ip + " USER: " + ac.user + " ACTION:" + ac.action + "\n")
+				}
+
+				//Empty activity array.
+				activity = make([]activityEntry, 0)
+				activityMu.Unlock()
+			}
+			file.Close()
+		} else {
+			log.Fatal(err)
+		}
+
+		time.Sleep(5 * time.Second)
 	}
 }
 
@@ -209,6 +248,10 @@ func HandleConnection(nConn net.Conn, config *ssh.ServerConfig) {
 	}
 }
 
-func logActivity(ip string, user string, activity string) {
-	fmt.Println(time.Now().String() + " " + ip + ":" + user + " - " + activity)
+func logActivity(ip string, user string, action string) {
+	ac := activityEntry{ip: ip, user: user, action: action, timestamp: time.Now()}
+	activityMu.Lock()
+	activity = append(activity, ac)
+	activityMu.Unlock()
+	fmt.Println(ac.timestamp.String() + " " + ac.ip + ":" + ac.user + " - " + ac.action)
 }
