@@ -13,10 +13,14 @@ import (
 //JunkHandler handler struct for request server
 type JunkHandler struct {
 	commandDelay int64
+	user         string
+	ip           string
 }
 
 //Fileread handler for read requests for the sftp server.
 func (fs *JunkHandler) Fileread(r *sftp.Request) (io.ReaderAt, error) {
+	logActivity(fs.ip, fs.user, "File Read Operation: "+r.Method+" , Path: "+r.Filepath)
+
 	file, ok := junkConfig.JunkFiles[r.Filepath]
 	fmt.Println(r.Filepath)
 	if ok {
@@ -28,12 +32,15 @@ func (fs *JunkHandler) Fileread(r *sftp.Request) (io.ReaderAt, error) {
 
 //Filewrite handler for write requests for the sftp server.
 func (fs *JunkHandler) Filewrite(r *sftp.Request) (io.WriterAt, error) {
+	logActivity(fs.ip, fs.user, "File Write Operation: "+r.Method+" , Path: "+r.Filepath)
+
 	return nil, nil
 }
 
 //Filecmd handler for commands for the sftp server.
 func (fs *JunkHandler) Filecmd(r *sftp.Request) error {
-	fmt.Println(r.Method)
+	logActivity(fs.ip, fs.user, "File Command Operation: "+r.Method+" , Path: "+r.Filepath)
+
 	time.Sleep(time.Second * time.Duration(fs.commandDelay))
 
 	return nil
@@ -56,13 +63,11 @@ func (f listerat) ListAt(ls []os.FileInfo, offset int64) (int, error) {
 
 //Filelist handler for list commands for the sftp server.
 func (fs *JunkHandler) Filelist(r *sftp.Request) (sftp.ListerAt, error) {
+	logActivity(fs.ip, fs.user, "File List Operation: "+r.Method+" , Path: "+r.Filepath)
 	time.Sleep(time.Second * time.Duration(fs.commandDelay))
-
 	switch r.Method {
 	case "List":
 		files := make([]os.FileInfo, 0)
-
-		fmt.Println("Test")
 		for _, v := range junkConfig.JunkFiles {
 			info := JunkFile{FileName: v.FileName}
 			files = append(files, info)
@@ -80,9 +85,8 @@ func (fs *JunkHandler) Filelist(r *sftp.Request) (sftp.ListerAt, error) {
 }
 
 // GetJunkHandler returns a Hanlders object with the test handlers.
-func GetJunkHandler(user string, commandDelay int64) (sftp.Handlers, error) {
-
-	fileWriter := &JunkHandler{commandDelay: commandDelay}
+func GetJunkHandler(user string, ip string, commandDelay int64) (sftp.Handlers, error) {
+	fileWriter := &JunkHandler{commandDelay: commandDelay, user: user, ip: ip}
 
 	return sftp.Handlers{FileGet: fileWriter, FilePut: fileWriter, FileCmd: fileWriter, FileList: fileWriter}, nil
 }
