@@ -17,7 +17,7 @@ Keep the brute force ftp bots busy with this simple waste of time.
 - login-delay : How long in seconds to delay login attempts
 - command-delay : How long in seconds to delay all commands
 
-##Configuration Examples
+## Configuration Examples
 Basic:
 ```{
     "LoginDelay":1,
@@ -55,9 +55,13 @@ Comprimised Credential Catcher:
 ```
 With no users nothing will be able to authenticate.  Each login attempt is logged and with login delay set to 3 it'll eat up some process time of the attacker.
 
+## Dependencies
+- Golang 
+
 ## How to run
 Run as exectuable:
-./FTPTrap --login-delay 3
+./FTPTrap_unix --login-delay 3
+
 Run as docker container:
 `docker run -v local/path/to/config.json:/config.json -p 2022:2022 jaeg/ftptrap:latest --login-delay 3 --command-delay 3`
 
