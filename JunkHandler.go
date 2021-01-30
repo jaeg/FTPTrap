@@ -12,9 +12,8 @@ import (
 
 //JunkHandler handler struct for request server
 type JunkHandler struct {
-	commandDelay int64
-	user         string
-	ip           string
+	user string
+	ip   string
 }
 
 //Fileread handler for read requests for the sftp server.
@@ -41,7 +40,7 @@ func (fs *JunkHandler) Filewrite(r *sftp.Request) (io.WriterAt, error) {
 func (fs *JunkHandler) Filecmd(r *sftp.Request) error {
 	logActivity(fs.ip, fs.user, "File Command Operation: "+r.Method+" , Path: "+r.Filepath)
 
-	time.Sleep(time.Second * time.Duration(fs.commandDelay))
+	time.Sleep(time.Second * junkConfig.CommandDelay)
 
 	return nil
 }
@@ -64,7 +63,7 @@ func (f listerat) ListAt(ls []os.FileInfo, offset int64) (int, error) {
 //Filelist handler for list commands for the sftp server.
 func (fs *JunkHandler) Filelist(r *sftp.Request) (sftp.ListerAt, error) {
 	logActivity(fs.ip, fs.user, "File List Operation: "+r.Method+" , Path: "+r.Filepath)
-	time.Sleep(time.Second * time.Duration(fs.commandDelay))
+	time.Sleep(time.Second * junkConfig.CommandDelay)
 	switch r.Method {
 	case "List":
 		files := make([]os.FileInfo, 0)
@@ -85,8 +84,8 @@ func (fs *JunkHandler) Filelist(r *sftp.Request) (sftp.ListerAt, error) {
 }
 
 // GetJunkHandler returns a Hanlders object with the test handlers.
-func GetJunkHandler(user string, ip string, commandDelay int64) (sftp.Handlers, error) {
-	fileWriter := &JunkHandler{commandDelay: commandDelay, user: user, ip: ip}
+func GetJunkHandler(user string, ip string) (sftp.Handlers, error) {
+	fileWriter := &JunkHandler{user: user, ip: ip}
 
 	return sftp.Handlers{FileGet: fileWriter, FilePut: fileWriter, FileCmd: fileWriter, FileList: fileWriter}, nil
 }

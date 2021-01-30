@@ -1,23 +1,22 @@
 {
+    "LoginDelay":1,
+    "CommandDelay":1,
     "Users": {
-        "test":"test",
+        "admin":"password",
         "nopass":""
     },
     "JunkFiles": {
         "/test.txt":{
-            "FileName":"test.txt",
-            "Content":"tessst"
+            "FileName":"Secrets.txt",
+            "Content":"gotcha"
         },
         "/test2.txt":{
-            "FileName":"test2.txt",
-            "Content":"tessst"
+            "FileName":"id_rsa",
+            "Content":"Nope"
         },
         "/test3.txt":{
-            "FileName":"test3.txt",
-            "Content":"tessst"
-        },"/test4.txt":{
-            "FileName":"test4.txt",
-            "Content":"tessst"
+            "FileName":"passwords.txt",
+            "Content":"Password, 1234"
         }
     }
 }

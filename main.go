@@ -22,8 +22,10 @@ import (
 
 //Config ..
 type Config struct {
-	Users     map[string]string //Blank strings all all passwords for username
-	JunkFiles map[string]JunkFile
+	Users        map[string]string //Blank strings all all passwords for username
+	JunkFiles    map[string]JunkFile
+	CommandDelay time.Duration
+	LoginDelay   time.Duration
 }
 
 var junkConfig Config
@@ -53,13 +55,20 @@ func main() {
 	flag.StringVar(&keyPath, "key-path", "", "Path to key if set, otherwise generate cert.")
 	flag.StringVar(&configPath, "config-path", "config.json", "Path to config file.")
 	flag.StringVar(&port, "port", "2022", "Port to run ftp on")
-	flag.Int64Var(&loginDelay, "login-delay", 0, "How long to delay login attempts in seconds")
-	flag.Int64Var(&commandDelay, "command-delay", 0, "How long to delay commands in seconds")
+	flag.Int64Var(&loginDelay, "login-delay", -1, "How long to delay login attempts in seconds")
+	flag.Int64Var(&commandDelay, "command-delay", -1, "How long to delay commands in seconds")
 
 	flag.Parse()
 
 	if err := loadConfig(configPath); err != nil {
 		fmt.Println("Failed loading config", err)
+	}
+
+	if loginDelay >= 0 {
+		junkConfig.LoginDelay = time.Duration(loginDelay)
+	}
+	if commandDelay >= 0 {
+		junkConfig.CommandDelay = time.Duration(commandDelay)
 	}
 
 	config := &ssh.ServerConfig{}
@@ -70,8 +79,8 @@ func main() {
 	} else {
 		config.PasswordCallback = func(c ssh.ConnMetadata, pass []byte) (*ssh.Permissions, error) {
 			logActivity(c.RemoteAddr().String(), c.User(), "Login Attempt: "+string(pass))
-			if loginDelay > 0 {
-				time.Sleep(time.Second * time.Duration(loginDelay))
+			if junkConfig.LoginDelay > 0 {
+				time.Sleep(time.Second * junkConfig.LoginDelay)
 			}
 			//Look up users from config
 			password, ok := junkConfig.Users[c.User()]
@@ -181,7 +190,7 @@ func HandleConnection(nConn net.Conn, config *ssh.ServerConfig) {
 		}(requests)
 
 		//Setup request server for the incoming connection
-		handlers, err := GetJunkHandler(sConn.User(), sConn.RemoteAddr().String(), commandDelay)
+		handlers, err := GetJunkHandler(sConn.User(), sConn.RemoteAddr().String())
 		if err != nil {
 			continue
 		}
