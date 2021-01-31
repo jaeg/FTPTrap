@@ -8,6 +8,7 @@ Keep the brute force ftp bots busy with this simple waste of time.
 - Allows for specifying a set of fake users with the option of leaving the password blank to allow all passwords. 
 - All upload commands and file change commands are ignored.
 - Can purposely slow login attempts and commands
+- Provides log files for users that attempted to log in as well as command history.
 
 ## Flags
 - no-auth : Disable authentication into the FTPTrap
@@ -16,6 +17,7 @@ Keep the brute force ftp bots busy with this simple waste of time.
 - port : Port to run the FTP server on
 - login-delay : How long in seconds to delay login attempts
 - command-delay : How long in seconds to delay all commands
+- user-output : Where to output the users tracking information.
 
 ## Configuration Examples
 Basic:

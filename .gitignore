@@ -1,4 +1,6 @@
 test.key
 test.cert
 activity.log
+users.log
 bin
+.DS_Store
